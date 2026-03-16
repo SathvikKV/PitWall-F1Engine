@@ -1,5 +1,6 @@
 "use client"
 
+import { useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { ScrollArea } from "@/components/ui/scroll-area"
@@ -10,7 +11,7 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion"
 import { cn } from "@/lib/utils"
-import { Layers } from "lucide-react"
+import { Layers, ChevronDown, ChevronUp } from "lucide-react"
 
 type ConfidenceLevel = "HIGH" | "MEDIUM" | "LOW"
 
@@ -50,7 +51,16 @@ interface PitRejoin {
   rawData: Record<string, unknown>
 }
 
-type EvidenceCard = StrategyRecommendation | UndercutAnalysis | PitRejoin
+interface FactCard {
+  id: string
+  type: "fact"
+  toolName: string
+  summary: string
+  timestamp: string
+  rawData: Record<string, unknown>
+}
+
+type EvidenceCard = StrategyRecommendation | UndercutAnalysis | PitRejoin | FactCard
 
 interface EvidenceCardsPanelProps {
   cards: EvidenceCard[]
@@ -71,45 +81,25 @@ const actionDisplay = {
 export function EvidenceCardsPanel({ cards }: EvidenceCardsPanelProps) {
   if (cards.length === 0) {
     return (
-      <Card className="flex h-full flex-col border-border/50 bg-card/80 backdrop-blur-sm">
-        <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2 text-lg font-semibold tracking-tight">
-            <Layers className="h-5 w-5 text-muted-foreground" />
-            Evidence Cards
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="flex flex-1 items-center justify-center">
-          <p className="text-center text-muted-foreground">
-            Run a tool to see results here.
-          </p>
-        </CardContent>
-      </Card>
+      <div className="flex flex-1 items-center justify-center p-12 bg-card/30 rounded-xl border border-dashed border-border/50">
+        <div className="text-center space-y-2">
+          <Layers className="h-10 w-10 text-muted-foreground mx-auto opacity-20" />
+          <p className="text-muted-foreground">No evidence collected yet. Ask a strategy question!</p>
+        </div>
+      </div>
     )
   }
 
   return (
-    <Card className="flex h-full flex-col border-border/50 bg-card/80 backdrop-blur-sm">
-      <CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
-          <CardTitle className="flex items-center gap-2 text-lg font-semibold tracking-tight">
-            <Layers className="h-5 w-5 text-muted-foreground" />
-            Evidence Cards
-          </CardTitle>
-          <Badge variant="outline" className="border-border/50 font-mono">
-            {cards.length}
-          </Badge>
-        </div>
-      </CardHeader>
-      <CardContent className="flex-1 overflow-hidden pt-0">
-        <ScrollArea className="h-full pr-2">
-          <Accordion type="multiple" className="space-y-3">
-            {cards.map((card) => (
-              <EvidenceCardItem key={card.id} card={card} />
-            ))}
+    <ScrollArea className="h-full pr-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {cards.map((card) => (
+          <Accordion key={card.id} type="single" collapsible defaultValue={card.id} className="min-w-0">
+            <EvidenceCardItem card={card} />
           </Accordion>
-        </ScrollArea>
-      </CardContent>
-    </Card>
+        ))}
+      </div>
+    </ScrollArea>
   )
 }
 
@@ -121,11 +111,13 @@ function EvidenceCardItem({ card }: { card: EvidenceCard }) {
       return <UndercutCard card={card} />
     case "pit_rejoin":
       return <PitRejoinCard card={card} />
+    case "fact":
+      return <FactCardComponent card={card} />
   }
 }
 
 function StrategyCard({ card }: { card: StrategyRecommendation }) {
-  const action = actionDisplay[card.action]
+  const action = actionDisplay[card.action] || { icon: "📊", text: card.action || "Analysis", color: "text-blue-400" }
   return (
     <AccordionItem
       value={card.id}
@@ -141,7 +133,7 @@ function StrategyCard({ card }: { card: StrategyRecommendation }) {
           </div>
           <Badge
             variant="outline"
-            className={cn("text-xs", confidenceColors[card.confidence])}
+            className={cn("text-xs", confidenceColors[card.confidence] || "bg-zinc-500/20 text-zinc-400 border-zinc-500/30")}
           >
             {card.confidence}
           </Badge>
@@ -168,7 +160,7 @@ function StrategyCard({ card }: { card: StrategyRecommendation }) {
 }
 
 function UndercutCard({ card }: { card: UndercutAnalysis }) {
-  const isPositive = card.expectedGain > 0
+  const isPositive = (card.expectedGain || 0) > 0
   return (
     <AccordionItem
       value={card.id}
@@ -200,7 +192,7 @@ function UndercutCard({ card }: { card: UndercutAnalysis }) {
                 )}
               >
                 {isPositive ? "+" : ""}
-                {card.expectedGain.toFixed(1)}s
+                {(card.expectedGain ?? 0).toFixed(1)}s
               </p>
             </div>
             <div className="space-y-1">
@@ -245,13 +237,13 @@ function PitRejoinCard({ card }: { card: PitRejoin }) {
             <div className="space-y-1">
               <p className="text-xs text-muted-foreground">Gap Ahead</p>
               <p className="font-mono text-lg font-semibold text-red-400">
-                {card.gapAhead}
+                {card.gapAhead || "0.000s"}
               </p>
             </div>
             <div className="space-y-1">
               <p className="text-xs text-muted-foreground">Gap Behind</p>
               <p className="font-mono text-lg font-semibold text-emerald-400">
-                +{card.gapBehind}
+                +{card.gapBehind || "0.000s"}
               </p>
             </div>
           </div>
@@ -281,5 +273,45 @@ function RawDataSection({
         {JSON.stringify(data, null, 2)}
       </pre>
     </div>
+  )
+}
+
+function FactCardComponent({ card }: { card: FactCard }) {
+  const toolLabels: Record<string, string> = {
+    query_wikipedia: "📚 Wikipedia",
+    get_race_context: "🏎️ Race Context",
+    resolve_driver: "🔍 Driver Lookup",
+  }
+  const label = toolLabels[card.toolName] || ("ℹ️ " + card.toolName)
+  return (
+    <AccordionItem
+      value={card.id}
+      className="overflow-hidden rounded-lg border border-border/30 bg-zinc-900/50"
+    >
+      <AccordionTrigger className="px-4 py-3 hover:no-underline [&[data-state=open]]:border-b [&[data-state=open]]:border-border/30">
+        <div className="flex w-full items-center justify-between pr-2">
+          <div className="flex items-center gap-3">
+            <span className="text-base font-semibold text-foreground">
+              {label}
+            </span>
+            <span className="text-xs text-muted-foreground font-mono">
+              {card.timestamp}
+            </span>
+          </div>
+        </div>
+      </AccordionTrigger>
+      <AccordionContent className="px-4 pb-4 pt-3">
+        <div className="space-y-3">
+          <p className="text-sm text-foreground/80 leading-relaxed whitespace-pre-wrap">
+            {card.summary}
+          </p>
+          {Object.keys(card.rawData).length > 0 && (
+            <pre className="overflow-x-auto rounded-md border border-border/20 bg-zinc-950/50 p-3 font-mono text-xs text-muted-foreground">
+              {JSON.stringify(card.rawData, null, 2)}
+            </pre>
+          )}
+        </div>
+      </AccordionContent>
+    </AccordionItem>
   )
 }

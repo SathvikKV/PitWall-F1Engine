@@ -36,6 +36,7 @@ const TOOL_TO_ENDPOINT: Record<string, string> = {
     project_pit_rejoin: "/tools/project_pit_rejoin",
     estimate_undercut: "/tools/estimate_undercut",
     recommend_strategy: "/tools/recommend_strategy",
+    query_wikipedia: "/tools/query_wikipedia",
 };
 
 async function callBackendTool(name: string, args: Record<string, unknown>): Promise<unknown> {
@@ -103,14 +104,7 @@ export class PitWallLiveClient {
         } as any);
         const self = this;
 
-        // Debug: log what the SDK sees
-        console.log("[PitWall] SDK apiVersion check:", {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            sdkApiVersion: (ai as any).apiVersion,
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            clientApiVersion: (ai as any).apiClient?.getApiVersion?.(),
-            model: MODEL,
-        });
+
         this.session = await ai.live.connect({
             model: MODEL,
             config: {
@@ -212,8 +206,10 @@ export class PitWallLiveClient {
                 });
                 if (!res.ok) return;
                 const brief = await res.json();
-                const ctx = `[SILENT_SYSTEM_UPDATE] Lap ${brief.lap}, flag ${brief.track_status?.flag}. ` +
-                    `Top: ${brief.top5?.map((d: { driver_code: string; gap_to_leader: number }) => `${d.driver_code} +${d.gap_to_leader}s`).join(", ") ?? "n/a"}`;
+                const driverList = (brief.drivers || []).map((d: { position: number; driver_code: string; gap_to_leader: number }) =>
+                    "P" + d.position + " " + d.driver_code + " +" + (d.gap_to_leader ?? 0) + "s"
+                ).join(", ");
+                const ctx = "[SILENT_SYSTEM_UPDATE] Lap " + brief.lap + ", flag " + (brief.track_status?.flag || "UNKNOWN") + ". Grid: " + (driverList || "n/a");
                 this.session.sendClientContent({
                     turns: [{ role: "user", parts: [{ text: ctx }] }],
                 });

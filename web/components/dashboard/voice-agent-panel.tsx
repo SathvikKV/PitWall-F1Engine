@@ -107,7 +107,8 @@ export function VoiceAgentPanel({
                 variant="outline"
                 className="border-border/50 bg-secondary/50"
               >
-                <PhoneOff className="h-4 w-4" />
+                <PhoneOff className="mr-2 h-4 w-4" />
+                Disconnect
               </Button>
             </>
           )}

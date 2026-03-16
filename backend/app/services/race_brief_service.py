@@ -9,21 +9,21 @@ from typing import Any, Dict, List, Optional
 from app.services.snapshot_service import get_latest_snapshot
 
 
-def _build_top5(drivers: List[dict]) -> List[Dict[str, Any]]:
-    """Return the top-5 drivers sorted by position."""
+def _build_drivers(drivers: List[dict]) -> List[Dict[str, Any]]:
+    """Return all drivers sorted by position."""
     with_pos = [d for d in drivers if d.get("position") is not None]
     with_pos.sort(key=lambda d: d["position"])
-    top5 = []
-    for d in with_pos[:5]:
+    all_drivers = []
+    for d in with_pos:
         tire = d.get("tire") or {}
-        top5.append({
+        all_drivers.append({
             "position": d["position"],
             "driver_code": d["driver_code"],
             "gap_to_leader": d.get("gap_to_leader"),
             "tire_compound": tire.get("compound"),
             "tire_age": tire.get("age"),
         })
-    return top5
+    return all_drivers
 
 
 def _build_focus(drivers: List[dict], code: str) -> Optional[Dict[str, Any]]:
@@ -61,7 +61,7 @@ def build_race_brief(
         "timestamp_utc": snap.get("timestamp_utc"),
         "lap": snap.get("lap"),
         "track_status": ts,
-        "top5": _build_top5(drivers),
+        "drivers": _build_drivers(drivers),
         "focus": None,
         "source": "replay",
         "mode": snap.get("mode", "replay"),

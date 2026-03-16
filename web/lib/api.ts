@@ -28,7 +28,7 @@ export function createSession(sessionId: string) {
 export function startReplay(opts: {
     sessionId: string;
     ndjsonPath: string;
-    tickMs: number;
+    speedMultiplier: number;
     loop: boolean;
 }) {
     return request("/admin/replay/start", {
@@ -36,7 +36,7 @@ export function startReplay(opts: {
         body: JSON.stringify({
             session_id: opts.sessionId,
             ndjson_path: opts.ndjsonPath,
-            tick_ms: opts.tickMs,
+            speed_multiplier: opts.speedMultiplier,
             loop: opts.loop,
         }),
     });
@@ -64,6 +64,13 @@ export function stopLive(sessionId: string) {
     return request("/admin/live/stop", {
         method: "POST",
         body: JSON.stringify({ session_id: sessionId }),
+    });
+}
+
+export function jumpToLap(sessionId: string, lap: number) {
+    return request("/admin/live/jump", {
+        method: "POST",
+        body: JSON.stringify({ session_id: sessionId, lap }),
     });
 }
 

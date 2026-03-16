@@ -188,7 +188,7 @@ async def query_wikipedia(req: QueryWikipediaRequest):
             "titles": req.query,
             "redirects": "1"
         }
-        async with httpx.AsyncClient(timeout=10.0) as client:
+        async with httpx.AsyncClient(timeout=10.0, headers={"User-Agent": "PitWallF1Engine/1.0 (race strategy dashboard; contact@pitwall.dev)"}) as client:
             resp = await client.get(url, params=params)
             resp.raise_for_status()
             data = resp.json()

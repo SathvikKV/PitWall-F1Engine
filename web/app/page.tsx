@@ -6,7 +6,17 @@ import { VoiceAgentPanel } from "@/components/dashboard/voice-agent-panel"
 import { EvidenceCardsPanel } from "@/components/dashboard/evidence-cards-panel"
 import { ControlsPanel } from "@/components/dashboard/controls-panel"
 import { DriverMap } from "@/components/dashboard/driver-map"
-import { Flag } from "lucide-react"
+import { Flag, Layers } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet"
+import { cn } from "@/lib/utils"
 
 import {
   getRaceBrief,
@@ -15,6 +25,7 @@ import {
   stopReplay,
   startLive,
   stopLive,
+  jumpToLap,
   projectPitRejoin,
   estimateUndercut,
   recommendStrategy
@@ -36,9 +47,9 @@ export default function F1StrategyDashboard() {
   let logId = useRef(0)
 
   // Control state
-  const [sessionId, setSessionId] = useState("replay_aus_2024_r")
+  const [sessionId, setSessionId] = useState("replay_local")
   const [replayPath, setReplayPath] = useState("data/replay/aus_2024_r.ndjson")
-  const [tickSpeed, setTickSpeed] = useState(1000)
+  const [playbackSpeed, setPlaybackSpeed] = useState(1.0)
   const [isReplaying, setIsReplaying] = useState(false)
   const [focusDriverCode, setFocusDriverCode] = useState("NOR")
   const [liveSessionKey, setLiveSessionKey] = useState("latest")
@@ -119,6 +130,13 @@ export default function F1StrategyDashboard() {
                             id: `uc-voice-${Date.now()}`, type: "undercut", timestamp: ts ?? new Date().toISOString(),
                             data: res as unknown as UndercutResult, attacker: (args.attacker as string | undefined) ?? "?", defender: (args.defender as string | undefined) ?? "?",
                         } as any)
+                    } else {
+                        // Catch-all: create a fact card for Wikipedia, race context, driver lookup, etc.
+                        const summary = (res.summary as string) || (res.session_type ? "Session: " + res.session_type + ", Lap " + (res.lap ?? "?") + ", Flag: " + ((res.track_status as any)?.flag ?? "?") : JSON.stringify(res).slice(0, 200));
+                        addEvidence({
+                            id: `fact-voice-${Date.now()}`, type: "fact", timestamp: ts ?? new Date().toISOString(),
+                            toolName: name, summary, rawData: res as Record<string, unknown>,
+                        } as any)
                     }
                 },
                 onStatus: (s) => {
@@ -172,24 +190,17 @@ export default function F1StrategyDashboard() {
     }
   }, [isMicActive, addLog])
 
-  const handleCreateSession = useCallback(async () => {
-    try {
-      await createSession(sessionId)
-      addLog("Session created", "status")
-    } catch(e) {
-      addLog(`Failed to create session`, "status")
-    }
-  }, [sessionId, addLog])
+
 
   const handleToggleReplay = useCallback(async () => {
     if (isReplaying) {
       await stopReplay(sessionId)
       setIsReplaying(false)
     } else {
-      await startReplay({ sessionId, ndjsonPath: replayPath, tickMs: tickSpeed, loop: true })
+      await startReplay({ sessionId, ndjsonPath: replayPath, speedMultiplier: playbackSpeed, loop: true })
       setIsReplaying(true)
     }
-  }, [isReplaying, sessionId, replayPath, tickSpeed])
+  }, [isReplaying, sessionId, replayPath, playbackSpeed])
 
   const handleToggleLiveMode = useCallback(async () => {
     if (isLiveMode) {
@@ -238,16 +249,16 @@ export default function F1StrategyDashboard() {
   }, [sessionId, addEvidence])
 
   // Map API driver formats to what the UI expects
-  const uiDrivers = brief ? brief.top5.map(d => ({
+  const uiDrivers = brief && brief.drivers ? brief.drivers.map((d: any) => ({
     position: d.position,
     code: d.driver_code,
-    gap: d.gap_to_leader !== null ? `+${d.gap_to_leader.toFixed(1)}s` : "LEADER",
-    tire: { compound: (d.tire_compound || "UNKNOWN") as "SOFT"|"MEDIUM"|"HARD"|"INTERMEDIATE"|"WET"|"UNKNOWN", age: d.tire_age || 0 }
+    gap: d.gap_to_leader !== null ? `+${d.gap_to_leader.toFixed(3)}s` : "LEADER",
+    tire: { compound: (d.tire_compound || "UNKNOWN") as "SOFT"|"MEDIUM"|"HARD"|"INTER"|"WET", age: d.tire_age || 0 }
   })) : []
 
   const uiFocusDriver = brief?.focus ? {
     code: brief.focus.driver_code,
-    position: brief.focus.position,
+    position: brief.focus.position ?? 0,
     gapAhead: brief.focus.gap_ahead ? `-${brief.focus.gap_ahead.toFixed(1)}s` : "-",
     gapBehind: brief.focus.gap_behind ? `+${brief.focus.gap_behind.toFixed(1)}s` : "-",
     lastLap: brief.focus.last_lap_time ? brief.focus.last_lap_time.toFixed(3) : "-",
@@ -256,15 +267,15 @@ export default function F1StrategyDashboard() {
   // Process evidence cards to match UI format
   // The UI EvidenceCardsPanel component expects certain props, we'll map them
   const mappedEvidenceCards = evidenceCards.map(c => {
-    if (c.type === "strategy") {
+    if (c.type === "recommend_strategy") {
       const data = c.data as RecommendStrategyResult
       return {
         id: c.id,
         type: "strategy" as const,
         driverCode: (c as any).driver,
-        confidence: data.confidence as any,
-        action: data.recommended_action as any,
-        reasons: data.reasons,
+        confidence: (data.confidence || "LOW").toUpperCase() as any,
+        action: (data.recommended_action || "STAY_OUT").toUpperCase() as any,
+        reasons: data.reasons || [],
         lap: brief?.lap || 0,
         timestamp: new Date(data.timestamp_utc).toLocaleTimeString("en-GB"),
         rawData: {},
@@ -276,8 +287,8 @@ export default function F1StrategyDashboard() {
         type: "pit_rejoin" as const,
         driverCode: (c as any).driver,
         projectedPosition: `P${data.projected_position}`,
-        gapAhead: `${data.gap_ahead_s > 0 ? "+" : ""}${data.gap_ahead_s.toFixed(1)}s`,
-        gapBehind: `${data.gap_behind_s > 0 ? "+" : ""}${data.gap_behind_s.toFixed(1)}s`,
+        gapAhead: data.gap_ahead_s !== null ? `${data.gap_ahead_s > 0 ? "+" : ""}${data.gap_ahead_s.toFixed(1)}s` : "-",
+        gapBehind: data.gap_behind_s !== null ? `${data.gap_behind_s > 0 ? "+" : ""}${data.gap_behind_s.toFixed(1)}s` : "-",
         lap: brief?.lap || 0,
         timestamp: new Date(data.timestamp_utc).toLocaleTimeString("en-GB"),
         rawData: {},
@@ -298,7 +309,34 @@ export default function F1StrategyDashboard() {
     }
     // fallback just in case
     return {} as any
-  })
+  }).filter((c: any) => c && c.id)
+
+  // Map fact cards from voice tools (Wikipedia, race context, etc.)
+  const factCards = evidenceCards
+    .filter(c => c.type === "fact")
+    .map(c => {
+      const fc = c as any
+      return {
+        id: fc.id,
+        type: "fact" as const,
+        toolName: fc.toolName || "unknown",
+        summary: fc.summary || "",
+        timestamp: new Date(fc.timestamp).toLocaleTimeString("en-GB"),
+        rawData: fc.rawData || {},
+      }
+    })
+  
+  const allEvidenceCards = [...mappedEvidenceCards, ...factCards]
+
+  const handleJumpToLap = useCallback(async (lap: number) => {
+    try {
+        await jumpToLap(sessionId, lap);
+        addLog(`Jumping replay to lap ${lap}...`, "status");
+    } catch (e) {
+        addLog(`Jump failed: ${e instanceof Error ? e.message : e}`, "status");
+    }
+  }, [sessionId, addLog]);
+
 
   return (
     <div className="flex h-screen flex-col overflow-hidden bg-background">
@@ -315,7 +353,7 @@ export default function F1StrategyDashboard() {
             <span className={`h-2 w-2 rounded-full ${running ? "animate-pulse bg-red-500" : "bg-zinc-500"}`} />
             {isLiveMode ? "LIVE" : "REPLAY"}
           </div>
-          <span className="font-mono text-sm text-muted-foreground">
+          <span className="font-mono text-sm text-muted-foreground" suppressHydrationWarning>
             {brief?.timestamp_utc ? brief.timestamp_utc.slice(11, 19) : new Date().toLocaleTimeString("en-GB")} UTC
           </span>
         </div>
@@ -336,38 +374,64 @@ export default function F1StrategyDashboard() {
           />
         </section>
 
-        {/* Center Column - Voice Agent + Map + Evidence */}
-        <section className="flex flex-col gap-4 overflow-hidden">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 h-[50%] min-h-[320px]">
-            <VoiceAgentPanel
-              connectionStatus={connectionStatus}
-              isMicActive={isMicActive}
-              transcript={transcript}
-              onConnect={handleConnect}
-              onDisconnect={handleDisconnect}
-              onToggleMic={handleToggleMic}
-            />
-            <DriverMap 
-              sessionId={isLiveMode ? liveSessionKey : sessionId} 
-              running={running} 
-              focusDriverCode={focusDriverCode} 
-            />
+
+
+        {/* Center Column - Voice Agent + Map */}
+        <section className="flex flex-col gap-4 min-h-0 h-full relative">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 flex-1 min-h-0 max-h-[800px]">
+            <div className="min-h-0 h-full overflow-hidden">
+              <VoiceAgentPanel
+                connectionStatus={connectionStatus}
+                isMicActive={isMicActive}
+                transcript={transcript}
+                onConnect={handleConnect}
+                onDisconnect={handleDisconnect}
+                onToggleMic={handleToggleMic}
+              />
+            </div>
+            <div className="min-h-0 h-full overflow-hidden">
+              <DriverMap 
+                sessionId={isLiveMode ? liveSessionKey : sessionId} 
+                running={running} 
+                focusDriverCode={focusDriverCode} 
+              />
+            </div>
           </div>
-          <div className="flex-1 overflow-hidden">
-            <EvidenceCardsPanel cards={mappedEvidenceCards} />
+          
+          {/* Bottom Evidence Menu */}
+          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20">
+            <Sheet>
+              <SheetTrigger asChild>
+                <Button variant="secondary" className="gap-2 shadow-2xl border border-primary/20 bg-background/80 backdrop-blur-md">
+                  <Layers className="h-4 w-4" />
+                  Strategy Evidence
+                  <Badge variant="outline" className="ml-1 border-primary/30">
+                    {allEvidenceCards.length}
+                  </Badge>
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="bottom" className="h-[70vh] p-0 border-t border-primary/20 bg-background/95 backdrop-blur-xl">
+                <SheetHeader className="px-6 py-4 border-b border-border/10 bg-card/30">
+                  <SheetTitle className="flex items-center gap-2 text-xl font-bold">
+                    <Layers className="h-5 w-5 text-primary" />
+                    Strategy Evidence & Analysis
+                  </SheetTitle>
+                </SheetHeader>
+                <div className="h-full overflow-hidden p-6 pb-20">
+                  <EvidenceCardsPanel cards={allEvidenceCards} />
+                </div>
+              </SheetContent>
+            </Sheet>
           </div>
         </section>
 
         {/* Right Column - Controls */}
         <section className="overflow-hidden">
           <ControlsPanel
-            sessionId={sessionId}
-            onSessionIdChange={setSessionId}
-            onCreateSession={handleCreateSession}
             replayPath={replayPath}
             onReplayPathChange={setReplayPath}
-            tickSpeed={tickSpeed}
-            onTickSpeedChange={setTickSpeed}
+            playbackSpeed={playbackSpeed}
+            onPlaybackSpeedChange={setPlaybackSpeed}
             isReplaying={isReplaying}
             onToggleReplay={handleToggleReplay}
             focusDriverCode={focusDriverCode}
@@ -380,6 +444,7 @@ export default function F1StrategyDashboard() {
             isLiveMode={isLiveMode}
             onToggleLiveMode={handleToggleLiveMode}
             detectedSessionType={detectedSessionType}
+            onJumpToLap={handleJumpToLap}
           />
         </section>
       </main>

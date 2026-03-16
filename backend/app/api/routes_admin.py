@@ -10,7 +10,7 @@ router = APIRouter(prefix="/admin/replay", tags=["admin"])
 class StartReplayRequest(BaseModel):
     session_id: str
     ndjson_path: str
-    tick_ms: int = 1000
+    speed_multiplier: float = 1.0
     loop: bool = False
 
 class StopReplayRequest(BaseModel):
@@ -22,7 +22,7 @@ async def api_start_replay(req: StartReplayRequest):
     if not os.path.exists(req.ndjson_path):
         raise HTTPException(status_code=400, detail=f"File not found: {req.ndjson_path}")
         
-    success = start_replay(req.session_id, req.ndjson_path, req.tick_ms, req.loop)
+    success = start_replay(req.session_id, req.ndjson_path, req.speed_multiplier, req.loop)
     if not success:
         return {"status": "already_running", "session_id": req.session_id}
         

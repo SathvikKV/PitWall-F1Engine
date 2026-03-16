@@ -18,6 +18,13 @@ REGISTRY_VERSION = "v1"
 
 def clean_schema(schema: Dict[str, Any]) -> Dict[str, Any]:
     """Strip unsupported Pydantic keywords from JSON schema for Gemini."""
+    
+    # Explicitly hide 'session_id' from the LLM, since the frontend liveClient injects it automatically
+    if "properties" in schema and "session_id" in schema["properties"]:
+        schema["properties"].pop("session_id")
+    if "required" in schema and "session_id" in schema["required"]:
+        schema["required"].remove("session_id")
+        
     cleaned = {}
     for k, v in schema.items():
         if k in ("title", "default"):

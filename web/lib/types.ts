@@ -21,7 +21,7 @@ export interface DriverState {
   last_lap_time: number | null;
 }
 
-export interface Top5Driver {
+export interface BaseDriver {
   position: number;
   driver_code: string;
   gap_to_leader: number | null;
@@ -43,7 +43,7 @@ export interface RaceBrief {
   timestamp_utc: string;
   lap: number | null;
   track_status: TrackStatus;
-  top5: Top5Driver[];
+  drivers: BaseDriver[];
   focus: FocusDriver | null;
   source: string;
   mode?: string;
@@ -103,4 +103,5 @@ export interface RecommendStrategyResult {
 export type EvidenceItem =
   | { id: string; type: "pit_rejoin";          timestamp: string; data: PitRejoinResult;          driver: string }
   | { id: string; type: "undercut";             timestamp: string; data: UndercutResult;            attacker: string; defender: string }
-  | { id: string; type: "recommend_strategy";   timestamp: string; data: RecommendStrategyResult;  driver: string };
+  | { id: string; type: "recommend_strategy";   timestamp: string; data: RecommendStrategyResult;  driver: string }
+  | { id: string; type: "fact";                 timestamp: string; toolName: string; summary: string; rawData: Record<string, unknown> };

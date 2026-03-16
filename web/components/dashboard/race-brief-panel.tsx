@@ -121,14 +121,14 @@ export function RaceBriefPanel({
         </CardContent>
       </Card>
 
-      {/* Top 5 Drivers Table */}
-      <Card className="flex-1 border-border/50 bg-card/80 backdrop-blur-sm">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-sm font-medium text-muted-foreground">
-            TOP 5 DRIVERS
+      {/* Drivers Table */}
+      <Card className="flex-1 border-border/50 bg-card/80 backdrop-blur-sm flex flex-col min-h-0">
+        <CardHeader className="pb-3 shrink-0">
+          <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
+            DRIVER TIMINGS
           </CardTitle>
         </CardHeader>
-        <CardContent className="pt-0">
+        <CardContent className="pt-0 flex-1 overflow-y-auto">
           <Table>
             <TableHeader>
               <TableRow className="border-border/30 hover:bg-transparent">

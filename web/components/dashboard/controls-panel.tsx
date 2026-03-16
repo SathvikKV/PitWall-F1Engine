@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { cn } from "@/lib/utils"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import {
   Play,
   Square,
@@ -21,15 +22,11 @@ import {
 type SessionType = "RACE" | "PRACTICE" | "QUALIFYING" | null
 
 interface ControlsPanelProps {
-  // Session Settings
-  sessionId: string
-  onSessionIdChange: (value: string) => void
-  onCreateSession: () => void
   // Replay Controls
   replayPath: string
   onReplayPathChange: (value: string) => void
-  tickSpeed: number
-  onTickSpeedChange: (value: number) => void
+  playbackSpeed: number
+  onPlaybackSpeedChange: (value: number) => void
   isReplaying: boolean
   onToggleReplay: () => void
   // Focus Driver
@@ -45,16 +42,14 @@ interface ControlsPanelProps {
   isLiveMode: boolean
   onToggleLiveMode: () => void
   detectedSessionType: SessionType
+  onJumpToLap: (lap: number) => void
 }
 
 export function ControlsPanel({
-  sessionId,
-  onSessionIdChange,
-  onCreateSession,
   replayPath,
   onReplayPathChange,
-  tickSpeed,
-  onTickSpeedChange,
+  playbackSpeed,
+  onPlaybackSpeedChange,
   isReplaying,
   onToggleReplay,
   focusDriverCode,
@@ -67,41 +62,11 @@ export function ControlsPanel({
   isLiveMode,
   onToggleLiveMode,
   detectedSessionType,
+  onJumpToLap,
 }: ControlsPanelProps) {
   return (
     <ScrollArea className="h-full pr-2">
       <div className="flex flex-col gap-4">
-        {/* Session Settings */}
-        <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-              <Settings className="h-4 w-4" />
-              SESSION SETTINGS
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3 pt-0">
-            <div className="space-y-1.5">
-              <label className="text-xs text-muted-foreground">Session ID</label>
-              <div className="flex gap-2">
-                <Input
-                  value={sessionId}
-                  onChange={(e) => onSessionIdChange(e.target.value)}
-                  placeholder="session-001"
-                  className="h-9 border-border/50 bg-zinc-950/50 font-mono text-sm"
-                />
-                <Button
-                  onClick={onCreateSession}
-                  size="sm"
-                  className="shrink-0"
-                >
-                  <Plus className="mr-1 h-3.5 w-3.5" />
-                  Create
-                </Button>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
         {/* Replay Controls */}
         <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
           <CardHeader className="pb-3">
@@ -113,24 +78,29 @@ export function ControlsPanel({
           <CardContent className="space-y-3 pt-0">
             <div className="space-y-1.5">
               <label className="text-xs text-muted-foreground">NDJSON Path</label>
-              <Input
-                value={replayPath}
-                onChange={(e) => onReplayPathChange(e.target.value)}
-                placeholder="/data/race.ndjson"
-                className="h-9 border-border/50 bg-zinc-950/50 font-mono text-sm"
-              />
+              <Select value={replayPath} onValueChange={onReplayPathChange}>
+                <SelectTrigger className="h-9 border-border/50 bg-zinc-950/50 font-mono text-sm">
+                  <SelectValue placeholder="Select replay..." />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="data/replay/aus_2024_r.ndjson">aus_2024_r.ndjson</SelectItem>
+                  <SelectItem value="data/replay/china_2024_r.ndjson">china_2024_r.ndjson</SelectItem>
+                  <SelectItem value="data/replay/aus_2025_r.ndjson">aus_2025_r.ndjson</SelectItem>
+                  <SelectItem value="data/replay/aus_2026_r.ndjson">aus_2026_r.ndjson</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             <div className="space-y-1.5">
               <label className="text-xs text-muted-foreground">
-                Tick Speed (ms)
+                Playback Speed (x)
               </label>
               <Input
                 type="number"
-                value={tickSpeed}
-                onChange={(e) => onTickSpeedChange(Number(e.target.value))}
-                min={50}
-                max={5000}
-                step={50}
+                value={playbackSpeed}
+                onChange={(e) => onPlaybackSpeedChange(Number(e.target.value))}
+                min={0.1}
+                max={100}
+                step={0.1}
                 className="h-9 border-border/50 bg-zinc-950/50 font-mono text-sm"
               />
             </div>
@@ -151,6 +121,31 @@ export function ControlsPanel({
                 </>
               )}
             </Button>
+
+            {isReplaying && (
+              <div className="flex flex-col gap-1.5 pt-1 border-t border-border/20">
+                <label className="text-xs text-muted-foreground">Jump to Lap</label>
+                <form 
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    const formData = new FormData(e.currentTarget);
+                    const lap = Number(formData.get("lap"));
+                    if (lap > 0) onJumpToLap(lap);
+                  }}
+                  className="flex gap-2"
+                >
+                  <Input
+                    name="lap"
+                    type="number"
+                    placeholder="Lap #"
+                    className="h-8 border-border/50 bg-zinc-950/50 font-mono text-sm"
+                  />
+                  <Button type="submit" size="sm" variant="secondary" className="h-8 shrink-0">
+                    Jump
+                  </Button>
+                </form>
+              </div>
+            )}
           </CardContent>
         </Card>
 
