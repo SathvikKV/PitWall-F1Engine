@@ -3,11 +3,19 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from app.api import routes_health, routes_tools, routes_admin, routes_agent
+from app.api import routes_health, routes_tools, routes_admin, routes_agent, routes_live
 from app.services.session_service import create_session
 from app.utils.time_utils import current_time_utc
 
 app = FastAPI(title="PitWall Tools API")
+
+@app.get("/")
+async def root():
+    return {
+        "status": "online",
+        "service": "PitWall Backend API",
+        "docs": "/docs"
+    }
 
 app.add_middleware(
     CORSMiddleware,
@@ -20,6 +28,7 @@ app.include_router(routes_health.router)
 app.include_router(routes_tools.router)
 app.include_router(routes_admin.router)
 app.include_router(routes_agent.router)
+app.include_router(routes_live.router)
 
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request: Request, exc: RequestValidationError):

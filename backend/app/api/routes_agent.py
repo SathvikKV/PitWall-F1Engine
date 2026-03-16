@@ -41,11 +41,15 @@ async def agent_ephemeral_token(req: EphemeralTokenRequest):
         )
         now = datetime.datetime.now(tz=datetime.timezone.utc)
         ttl = min(req.ttl_seconds, 1800)  # cap at 30 min
+        # Format the expiration time as RFC3339 string
+        expire_time_str = (now + datetime.timedelta(seconds=ttl)).strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z"
+        new_session_expire_time_str = (now + datetime.timedelta(minutes=2)).strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z"
+
         token = client.auth_tokens.create(
             config={
                 "uses": 1,
-                "expire_time": now + datetime.timedelta(seconds=ttl),
-                "new_session_expire_time": now + datetime.timedelta(minutes=2),
+                "expire_time": expire_time_str,
+                "new_session_expire_time": new_session_expire_time_str,
                 "http_options": {"api_version": "v1alpha"},
             }
         )

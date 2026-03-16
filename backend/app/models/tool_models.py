@@ -25,6 +25,7 @@ class GetRaceContextResponse(BaseModel):
     timestamp_utc: str
     source: str = "stub"
     mode: Optional[str] = None
+    session_type: Optional[str] = None   # "Race" | "Sprint" | "Qualifying" | "Practice" | None
     snapshot_ingest_ts_utc: Optional[str] = None
 
 # Project Pit Rejoin
@@ -86,4 +87,15 @@ class RecommendStrategyResponse(BaseModel):
     lap: Optional[int] = None
     timestamp_utc: str
     source: str = "stub"
+    mode: Optional[str] = None
+    snapshot_ingest_ts_utc: Optional[str] = None
+    source_ts_utc: Optional[str] = None
 
+# Query Wikipedia
+class QueryWikipediaRequest(BaseModel):
+    query: str
+
+class QueryWikipediaResponse(BaseModel):
+    summary: str
+    url: Optional[str] = None
+    error: Optional[str] = None

@@ -32,7 +32,8 @@ class RaceSnapshot(BaseModel):
     lap: Optional[int] = Field(default=None, ge=0)
     track_status: TrackStatus
     drivers: List[DriverState]
-    mode: str = "replay"  # "replay" | "live"
+    mode: str = "replay"                  # "replay" | "live"
+    session_type: Optional[str] = None    # "Race" | "Sprint" | "Qualifying" | "Practice" | None
     ingest_ts_utc: Optional[str] = None
     source_ts_utc: Optional[str] = None
 

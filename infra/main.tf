@@ -26,6 +26,7 @@ resource "google_project_service" "apis" {
     "secretmanager.googleapis.com",
     "artifactregistry.googleapis.com",
     "cloudbuild.googleapis.com",
+    "vpcaccess.googleapis.com",
   ])
   service            = each.value
   disable_on_destroy = false
@@ -138,9 +139,24 @@ resource "google_cloud_run_v2_service" "backend" {
 
   depends_on = [
     google_project_service.apis,
-    google_secret_manager_secret_version.gemini_key_v1,
+    time_sleep.wait_for_iam,
   ]
 }
+
+# Grant default compute service account access to the secret
+resource "google_secret_manager_secret_iam_member" "secret_access" {
+  secret_id  = google_secret_manager_secret.gemini_key.id
+  role       = "roles/secretmanager.secretAccessor"
+  member     = "serviceAccount:${data.google_project.project.number}-compute@developer.gserviceaccount.com"
+  depends_on = [google_secret_manager_secret.gemini_key]
+}
+
+resource "time_sleep" "wait_for_iam" {
+  create_duration = "30s"
+  depends_on      = [google_secret_manager_secret_iam_member.secret_access]
+}
+
+data "google_project" "project" {}
 
 # Allow unauthenticated access to backend
 resource "google_cloud_run_v2_service_iam_member" "backend_public" {

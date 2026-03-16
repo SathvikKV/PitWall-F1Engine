@@ -14,4 +14,6 @@ ENV PORT=8080
 EXPOSE ${PORT}
 
 # Run FastAPI server
-CMD uvicorn app.main:app --host 0.0.0.0 --port ${PORT}
+# Cloud Run injects the PORT environment variable (default 8080)
+# We must use shell form to evaluate the $PORT variable correctly
+CMD uvicorn app.main:app --host 0.0.0.0 --port $PORT

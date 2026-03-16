@@ -1,6 +1,4 @@
 """Tests for the recommend_strategy deterministic model."""
-
-import pytest
 from app.models.snapshot_model import (
     RaceSnapshot, DriverState, TireState, TrackStatus,
 )
@@ -14,6 +12,9 @@ def _make_snapshot(
     vsc=False,
     lap=30,
     ts="2024-03-24T14:30:00Z",
+    mode="replay",
+    ingest_ts_utc=None,
+    source_ts_utc=None,
 ) -> RaceSnapshot:
     return RaceSnapshot(
         session_id="test",
@@ -21,6 +22,9 @@ def _make_snapshot(
         lap=lap,
         track_status=TrackStatus(flag=flag, sc=sc, vsc=vsc),
         drivers=drivers,
+        mode=mode,
+        ingest_ts_utc=ingest_ts_utc,
+        source_ts_utc=source_ts_utc,
     )
 
 
@@ -113,7 +117,12 @@ def test_driver_not_found():
 def test_result_has_required_fields():
     """Every result must include lap, timestamp, source, reasons."""
     drivers = [_driver("NOR", 1, 0.0, gap_behind=5.0)]
-    snap = _make_snapshot(drivers, lap=42)
+    snap = _make_snapshot(
+        drivers,
+        lap=42,
+        ingest_ts_utc="2024-03-24T14:30:01Z",
+        source_ts_utc="2024-03-24T14:29:59Z",
+    )
     result = recommend_strategy(snap, "NOR", {"NOR": MEDIUM_PACE})
     assert "recommended_action" in result
     assert "reasons" in result
@@ -121,3 +130,7 @@ def test_result_has_required_fields():
     assert result["lap"] == 42
     assert result["timestamp_utc"] == "2024-03-24T14:30:00Z"
     assert result["source"] == "replay"
+    assert result["mode"] == "replay"
+    assert result["snapshot_ingest_ts_utc"] == "2024-03-24T14:30:01Z"
+    assert result["source_ts_utc"] == "2024-03-24T14:29:59Z"
+    assert result["supporting_evidence"]["focus_driver"]["driver_code"] == "NOR"
