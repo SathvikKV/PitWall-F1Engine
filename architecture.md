@@ -9,21 +9,21 @@ graph TD
     end
 
     %% Backend Service
-    subgraph Backend [FastAPI Backend Service]
-        API[REST & WebSockets API]
-        Agent[Gemini Live Agent]
-        LiveClient[OpenF1/FastF1 Data Client]
-        Tools[Tool Registry<br/>(Stats, Map, Strategy)]
+    subgraph Backend ["FastAPI Backend Service"]
+        API["REST & WebSockets API"]
+        Agent["Gemini Live Agent"]
+        LiveClient["OpenF1/FastF1 Data Client"]
+        Tools["Tool Registry<br/>(Stats, Map, Strategy)"]
     end
 
     %% Cloud Infrastructure
-    subgraph GCP [Google Cloud Platform]
-        CloudRunWeb[Cloud Run<br/>(Frontend Container)]
-        CloudRunAPI[Cloud Run<br/>(Backend Container)]
-        Redis[(Memorystore Redis<br/>Session Cache)]
-        Firestore[(Firestore DB<br/>Logs & Metadata)]
-        SecretManager[Secret Manager<br/>GEMINI_API_KEY]
-        Storage[(GCS Bucket<br/>Static Assets)]
+    subgraph GCP ["Google Cloud Platform"]
+        CloudRunWeb["Cloud Run<br/>(Frontend Container)"]
+        CloudRunAPI["Cloud Run<br/>(Backend Container)"]
+        Redis[("Memorystore Redis<br/>Session Cache")]
+        Firestore[("Firestore DB<br/>Logs & Metadata")]
+        SecretManager["Secret Manager<br/>GEMINI_API_KEY"]
+        Storage[("GCS Bucket<br/>Static Assets")]
     end
 
     %% External APIs

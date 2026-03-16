@@ -5,18 +5,25 @@
 ## 🏆 Hackathon Project Description
 
 ### 🌟 What we built (Live Agent)
-PitWall transforms the passive F1 fan experience into an interactive one. We built a Next-Generation AI Agent focused on **Real-time Interaction (Audio)**. 
-Instead of just looking at spreadsheets of telemetry, users can talk natively to their "AI Race Engineer" through a voice interface that gracefully handles interruptions. 
+PitWall transforms the passive F1 fan experience into an interactive one. We built a Next-Generation AI Agent focused on **Real-time Interaction (Audio/Vision)**. 
+
+Instead of just looking at spreadsheets of telemetry, users can talk natively to their "AI Race Engineer" through a voice interface that gracefully handles interruptions. The agent isn't just a chatbot; it is a **multimodal operator** that observes live data and executes complex strategic simulations while you speak.
 
 ### 🔧 Core Features & Functionality
-- **Multimodal Voice Agent**: Speak directly to the dashboard using your microphone. The agent leverages the **Gemini Live API** to have fluid, interruptible, low-latency conversations.
-- **Real-time Track Map**: A live 2D SVG track map that plots driver positions using live `(x, y)` telemetry data.
+- **Multimodal Voice Agent**: Speak directly to the dashboard using your microphone. The agent leverages the **Gemini Live API** to have fluid, interruptible, low-latency conversations. It can "see" the race state and respond to your tone and urgency.
+- **Real-time Track Map**: A live 2D SVG track map that plots driver positions using live `(x, y)` telemetry data. Watch the "pips" move synchronously with the timing screens.
 - **Dynamic Toolkit**: The AI can execute tools on behalf of the user:
-  - `project_pit_rejoin`: Calculates where a driver will land on track if they pit right now.
-  - `estimate_undercut`: Evaluates if a driver can pull off an undercut strategy.
-  - `recommend_strategy`: Analyzes tire age, intervals, and pace to recommend pitting or staying out.
+  - `project_pit_rejoin`: Calculates where a driver will land on track if they pit right now, accounting for traffic and the "pit window."
+  - `estimate_undercut`: Evaluates the potential delta gain of pitting early to leapfrog a rival.
+  - `recommend_strategy`: Our proprietary logic that analyzes tire age, intervals, and pace to recommend pitting or staying out.
   - `query_wikipedia`: Pulls F1 histories, definitions (like "What is DRS?"), and rules directly from Wikipedia as an educational tutor.
-- **Context-Aware Sessions**: The Agent automatically knows if it's looking at a Practice, Qualifying, or Race session and restricts strategy advice appropriately.
+- **Context-Aware Sessions**: The Agent automatically detects the session type (Practice, Qualifying, or Race) to tailor its personality—from technical setup assistance to high-pressure race strategy.
+
+### 🔮 Projected & Future Features
+- **Predictive Tire Degradation**: ML models to forecast "the cliff" for each tire compound based on track temperature.
+- **Multi-Driver Comparison**: Side-by-side telemetry overlays (Speed, Throttle, Brake) analyzed by the AI to spot where a driver is losing time.
+- **Voice-Activated Pit Wall**: Direct integration to send strategy "orders" back to a simulated or real race management system.
+- **Historical Playback Mode**: Re-live classic races with the AI Engineer providing "hindsight" strategy analysis.
 
 ### 🛠️ Technologies & Google Cloud Integration
 - **Google Cloud Services Used**:
@@ -49,26 +56,26 @@ graph TD
     Client[Web Browser Client]
 
     %% Frontend Service
-    subgraph Frontend [Next.js Web Frontend]
-        UI[PitWall UI - React 19]
+    subgraph Frontend ["Next.js Web Frontend"]
+        UI["PitWall UI - React 19"]
     end
 
     %% Backend Service
-    subgraph Backend [FastAPI Backend Service]
-        API[REST & WebSockets API]
-        Agent[Gemini Live Agent]
-        LiveClient[OpenF1/FastF1 Data Client]
-        Tools[Tool Registry<br/>(Stats, Map, Strategy)]
+    subgraph Backend ["FastAPI Backend Service"]
+        API["REST & WebSockets API"]
+        Agent["Gemini Live Agent"]
+        LiveClient["OpenF1/FastF1 Data Client"]
+        Tools["Tool Registry<br/>(Stats, Map, Strategy)"]
     end
 
     %% Cloud Infrastructure
-    subgraph GCP [Google Cloud Platform]
-        CloudRunWeb[Cloud Run<br/>(Frontend Container)]
-        CloudRunAPI[Cloud Run<br/>(Backend Container)]
-        Redis[(Memorystore Redis<br/>Session Cache)]
-        Firestore[(Firestore DB<br/>Logs & Metadata)]
-        SecretManager[Secret Manager<br/>GEMINI_API_KEY]
-        Storage[(GCS Bucket<br/>Static Assets)]
+    subgraph GCP ["Google Cloud Platform"]
+        CloudRunWeb["Cloud Run<br/>(Frontend Container)"]
+        CloudRunAPI["Cloud Run<br/>(Backend Container)"]
+        Redis[("Memorystore Redis<br/>Session Cache")]
+        Firestore[("Firestore DB<br/>Logs & Metadata")]
+        SecretManager["Secret Manager<br/>GEMINI_API_KEY"]
+        Storage[("GCS Bucket<br/>Static Assets")]
     end
 
     %% External APIs
@@ -105,63 +112,60 @@ The project includes a fully robust Infrastructure-as-Code (IaC) setup using **T
 
 Requirements: `gcloud` CLI installed, authenticated, and Docker installed.
 
-### 1. Build and push Docker Images
-Set your project ID:
-```bash
-export PROJECT_ID="your-gcp-project-id"
-export REGION="us-central1"
+### 1. Prerequisite Checklist
+Before deploying, ensure you have:
+1.  **GCP Account**: A Google Cloud project with billing enabled.
+2.  **Gemini API Key**: Obtain one from [Google AI Studio](https://aistudio.google.com/).
+3.  **Local Tools**: `gcloud` CLI, `terraform`, and `docker` installed.
 
-# Create an artifact registry repository
+### 2. Build and Push Application Images
+We use **Google Cloud Build** to remotely package the application into **Artifact Registry**. This ensures the containers are optimized for Cloud Run.
+
+```bash
+# Set your variables
+PROJECT_ID="your-project-id"
+REGION="us-central1"
+
+# 1. Create the Docker Repository
 gcloud artifacts repositories create pitwall-repo \
     --repository-format=docker \
     --location=$REGION \
     --description="Docker repository for PitWall"
-```
 
-Build the Backend:
-```bash
+# 2. Build Backend
 cd backend
 gcloud builds submit --tag $REGION-docker.pkg.dev/$PROJECT_ID/pitwall-repo/pitwall-backend:latest
-cd ..
-```
 
-Build the Frontend:
-```bash
-cd web
+# 3. Build Frontend
+cd ../web
 gcloud builds submit --tag $REGION-docker.pkg.dev/$PROJECT_ID/pitwall-repo/pitwall-web:latest
-cd ..
 ```
 
-### 2. Provision Infrastructure via Terraform
-Navigate to the `infra` directory.
+### 3. Deploy the Infrastructure (IaC)
+Navigate to the `infra` directory. Terraform will stand up the entire managed stack, including VPC connectors and security policies.
 
 ```bash
-cd infra
-```
-
-Copy the example variables file:
-```bash
+cd ../infra
 cp terraform.tfvars.example terraform.tfvars
 ```
 
-Edit `terraform.tfvars` with your specifics:
+Update your `terraform.tfvars`:
 ```hcl
-project_id     = "your-gcp-project-id"
+project_id     = "your-project-id"
 region         = "us-central1"
-gemini_api_key = "AIzaSy..." # Your Gemini API key here
-backend_image  = "us-central1-docker.pkg.dev/your-gcp-project-id/pitwall-repo/pitwall-backend:latest"
-web_image      = "us-central1-docker.pkg.dev/your-gcp-project-id/pitwall-repo/pitwall-web:latest"
+gemini_api_key = "AIza..." # Your Key
+backend_image  = "us-central1-docker.pkg.dev/your-project/pitwall-repo/pitwall-backend:latest"
+web_image      = "us-central1-docker.pkg.dev/your-project/pitwall-repo/pitwall-web:latest"
 ```
 
-Deploy the stack! This will automatically enable all necessary Google Cloud APIs, create the Secret Manager secrets, provision the Redis cache on a Serverless VPC connector, stand up the Firestore database, and deploy the Cloud Run containers.
-
+Run Terraform:
 ```bash
 terraform init
-terraform plan
-terraform apply
+terraform apply -auto-approve
 ```
 
-Upon successful apply, Terraform will output the public URL of the Frontend Cloud Run service!
+**Success!** Terraform will output your `web_url`. Open it to launch the command center.
+
 
 ---
 
