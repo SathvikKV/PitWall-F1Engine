@@ -1,6 +1,6 @@
 /* ── Backend API integration layer ── */
 
-const BASE = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8080";
+const BASE = "/api/proxy";
 
 async function request<T>(path: string, opts: RequestInit = {}): Promise<T> {
     const res = await fetch(`${BASE}${path}`, {

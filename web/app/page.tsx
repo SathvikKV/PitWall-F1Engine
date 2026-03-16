@@ -186,7 +186,7 @@ export default function F1StrategyDashboard() {
       await stopReplay(sessionId)
       setIsReplaying(false)
     } else {
-      await startReplay({ sessionId, ndjsonPath: replayPath, tickMs, loop: true })
+      await startReplay({ sessionId, ndjsonPath: replayPath, tickMs: tickSpeed, loop: true })
       setIsReplaying(true)
     }
   }, [isReplaying, sessionId, replayPath, tickSpeed])
@@ -200,7 +200,7 @@ export default function F1StrategyDashboard() {
       setIsLiveMode(true)
       setTimeout(async () => {
           try {
-              const st = await fetch(`http://localhost:8080/admin/live/status?session_id=${encodeURIComponent(sessionId)}`).then(r => r.json())
+              const st = await fetch(`/api/proxy/admin/live/status?session_id=${encodeURIComponent(sessionId)}`).then(r => r.json())
               if (st.session_type) setDetectedSessionType(st.session_type)
           } catch { /* ignore */ }
       }, 3000)

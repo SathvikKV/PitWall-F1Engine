@@ -8,7 +8,7 @@
 
 import { GoogleGenAI, Modality } from "@google/genai";
 
-const BACKEND = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8080";
+const BACKEND = "/api/proxy";
 const MODEL = "gemini-2.5-flash-native-audio-latest";
 
 /* ── Types ─────────────────────────────────────────────────────────────── */
