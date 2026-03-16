@@ -2,14 +2,14 @@
 
 **PitWall Live** is a real-time AI-powered Race Engineer dashboard tailored for Formula 1 strategy. Built for the Google Cloud Hackathon, it utilizes the **Gemini Live API** to provide an interactive, multimodal voice agent that understands live race data, predicts strategic outcomes, and can act as an educational F1 tutor natively integrated into the command center.
 
-## 🏆 Hackathon Project Description
+## Hackathon Project Description
 
-### 🌟 What we built (Live Agent)
+### Project Vision and Live Agent Implementation
 PitWall transforms the passive F1 fan experience into an interactive one. We built a Next-Generation AI Agent focused on **Real-time Interaction (Audio/Vision)**. 
 
 Instead of just looking at spreadsheets of telemetry, users can talk natively to their "AI Race Engineer" through a voice interface that gracefully handles interruptions. The agent isn't just a chatbot; it is a **multimodal operator** that observes live data and executes complex strategic simulations while you speak.
 
-### 🔧 Core Features & Functionality
+### Core Features and Functionality
 - **Multimodal Voice Agent**: Speak directly to the dashboard using your microphone. The agent leverages the **Gemini Live API** to have fluid, interruptible, low-latency conversations. It can "see" the race state and respond to your tone and urgency.
 - **Real-time Track Map**: A live 2D SVG track map that plots driver positions using live `(x, y)` telemetry data. Watch the "pips" move synchronously with the timing screens.
 - **Dynamic Toolkit**: The AI can execute tools on behalf of the user:
@@ -19,13 +19,13 @@ Instead of just looking at spreadsheets of telemetry, users can talk natively to
   - `query_wikipedia`: Pulls F1 histories, definitions (like "What is DRS?"), and rules directly from Wikipedia as an educational tutor.
 - **Context-Aware Sessions**: The Agent automatically detects the session type (Practice, Qualifying, or Race) to tailor its personality—from technical setup assistance to high-pressure race strategy.
 
-### 🔮 Projected & Future Features
+### Development Roadmap
 - **Predictive Tire Degradation**: ML models to forecast "the cliff" for each tire compound based on track temperature.
 - **Multi-Driver Comparison**: Side-by-side telemetry overlays (Speed, Throttle, Brake) analyzed by the AI to spot where a driver is losing time.
 - **Voice-Activated Pit Wall**: Direct integration to send strategy "orders" back to a simulated or real race management system.
 - **Historical Playback Mode**: Re-live classic races with the AI Engineer providing "hindsight" strategy analysis.
 
-### 🛠️ Technologies & Google Cloud Integration
+### Technology Stack and Google Cloud Integration
 - **Google Cloud Services Used**:
   - **Gemini Live API**: Powers the core multimodal, interruptible audio interaction. (via Google GenAI SDK).
   - **Cloud Run**: Fully serverless hosting for both the React Frontend and FastAPI Backend containers.
@@ -39,13 +39,13 @@ Instead of just looking at spreadsheets of telemetry, users can talk natively to
   - **FastF1 / OpenF1**: Public APIs for acquiring official Formula 1 timing, telemetry, and track status data.
   - **Wikipedia API**: Text extracts for F1 historical context and rules.
 
-### 🧠 Findings and Learnings
+### Technical Challenges and Insights
 - **Tool Bindings with Live Audio**: Binding JSON schemas to an audio-first agent requires aggressive prompting to ensure the model doesn't "read out" raw tool JSON (like long timestamps or messy coordinates) but instead parses it conversationally.
 - **Handling High-Frequency Telemetry**: F1 telemetry comes in fast. Using a dedicated Redis instance was critical; otherwise, the Python backend couldn't process the math for undercut projections quickly enough while simultaneously maintaining the WebRTC/WebSocket audio stream with Gemini.
 
 ---
 
-## 🏗️ Architecture Diagram
+## System Architecture Diagram
 
 Below is the high-level architecture showing how the Frontend, Backend, Google Cloud services, and the Gemini Live API interact natively.
 *(For a raw file view, see `architecture.md`)*
@@ -106,7 +106,7 @@ graph TD
 
 ---
 
-## 🚀 Cloud Spin-Up Instructions (Reproducibility)
+## Cloud Deployment Guide (Terraform)
 
 The project includes a fully robust Infrastructure-as-Code (IaC) setup using **Terraform** to deploy to Google Cloud.
 
@@ -169,10 +169,10 @@ terraform apply -auto-approve
 
 ---
 
-## 💻 Local Testing
+## Local Development and Testing
 
 If you'd prefer to test locally without deploying to GCP, refer to the local scripts:
-👉 **[LOCAL_SETUP.md](./LOCAL_SETUP.md)**
+For detailed local configuration, see the [LOCAL_SETUP.md](./LOCAL_SETUP.md) documentation.
 
 ```bash
 # Requires Docker running for local Redis
